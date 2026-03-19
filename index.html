@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000" id="meta-theme-color">
+    <link rel="manifest" id="pwa-manifest">
+    <link rel="apple-touch-icon"
+        href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VjNDg5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIj48L2NpcmNsZT48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIj48L2NpcmNsZT48L3N2Zz4=">
+    <title>MotoTracker Web App</title>
+
+    <!-- Fuentes: Inter para Vercel, Quicksand para Cute -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Quicksand:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Iconos: Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Configuración de Tailwind y Temas -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base: 'var(--bg-base)',
+                        surface: 'var(--bg-surface)',
+                        primary: 'var(--text-primary)',
+                        muted: 'var(--text-muted)',
+                        accent: 'var(--accent)',
+                        borderline: 'var(--border-color)',
+                        chartline: 'var(--chart-line)',
+                        chartfill: 'var(--chart-fill)',
+                    },
+                    borderRadius: {
+                        'ui': 'var(--radius)',
+                    },
+                    boxShadow: {
+                        'ui': 'var(--shadow)',
+                    },
+                    fontFamily: {
+                        'ui': 'var(--font-family)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Tema Vercel (Por Defecto) */
+        :root {
+            --bg-base: #000000;
+            --bg-surface: #111111;
+            --text-primary: #ffffff;
+            --text-muted: #888888;
+            --accent: #ffffff;
+            --border-color: #333333;
+            --radius: 0.375rem;
+            /* rounded-md */
+            --shadow: none;
+            --font-family: 'Inter', sans-serif;
+            --chart-line: #ffffff;
+            --chart-fill: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Tema Cute */
+        :root.theme-cute {
+            --bg-base: #fdf2f8;
+            /* pink-50 */
+            --bg-surface: #ffffff;
+            --text-primary: #4c1d95;
+            /* violet-900 */
+            --text-muted: #db2777;
+            /* pink-600 */
+            --accent: #ec4899;
+            /* pink-500 */
+            --border-color: #fbcfe8;
+            /* pink-200 */
+            --radius: 1.5rem;
+            /* rounded-3xl */
+            --shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --font-family: 'Quicksand', sans-serif;
+            --chart-line: #ec4899;
+            --chart-fill: rgba(236, 72, 153, 0.15);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Utilidades para ocultar vistas */
+        .view-hidden {
+            display: none !important;
+        }
+
+        /* Estilos del Gráfico SVG */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+        }
+
+        .chart-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .chart-html-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .chart-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: var(--bg-surface);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .chart-point:hover {
+            transform: translate(-50%, -50%) scale(1.5);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            font-size: 0.75rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            transform: translate(-50%, -100%);
+            margin-top: -10px;
+            white-space: nowrap;
+            z-index: 10;
+            box-shadow: var(--shadow);
+        }
+
+        /* Hover Line */
+        .hover-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            border-left: 1px dashed var(--text-muted);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        input,
+        select {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen pb-20">
+
+    <!-- Navegación Superior -->
+    <nav class="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-borderline">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="bike" class="w-6 h-6 text-accent"></i>
+                    <span class="font-bold text-xl tracking-tight">MotoTracker</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="app.openModal('modal-settings')"
+                        class="p-2 rounded-full hover:bg-base border border-borderline transition-colors">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                    </button>
+                    <button id="themeToggle"
+                        class="p-2 rounded-full hover:bg-base border border-borderline transition-colors">
+                        <i data-lucide="moon" class="w-5 h-5" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Tabs -->
+        <div class="flex space-x-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+            <button onclick="app.switchTab('dashboard')" id="tab-dashboard"
+                class="px-4 py-2 rounded-ui text-sm font-medium transition-colors bg-accent text-surface shadow-ui">Dashboard</button>
+            <button onclick="app.switchTab('maint')" id="tab-maint"
+                class="px-4 py-2 rounded-ui text-sm font-medium transition-colors text-muted hover:text-primary">Mantenimientos</button>
+            <button onclick="app.switchTab('fuel')" id="tab-fuel"
+                class="px-4 py-2 rounded-ui text-sm font-medium transition-colors text-muted hover:text-primary">Combustible</button>
+            <button onclick="app.switchTab('calc')" id="tab-calc"
+                class="px-4 py-2 rounded-ui text-sm font-medium transition-colors text-muted hover:text-primary">Calculadora</button>
+        </div>
+
+        <!-- VISTA: Dashboard -->
+        <div id="view-dashboard" class="space-y-6">
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-surface p-6 rounded-ui border border-borderline shadow-ui flex flex-col justify-between">
+                    <div class="flex items-center gap-2 text-muted mb-2">
+                        <i data-lucide="gauge" class="w-4 h-4"></i>
+                        <span class="text-sm">Kilometraje Total</span>
+                    </div>
+                    <span class="text-3xl font-bold" id="kpi-km">0 km</span>
+                </div>
+                <div class="bg-surface p-6 rounded-ui border border-borderline shadow-ui flex flex-col justify-between">
+                    <div class="flex items-center gap-2 text-muted mb-2">
+                        <i data-lucide="droplets" class="w-4 h-4"></i>
+                        <span class="text-sm">Rendimiento Global</span>
+                    </div>
+                    <span class="text-3xl font-bold" id="kpi-kml">0 km/L</span>
+                </div>
+                <div class="bg-surface p-6 rounded-ui border border-borderline shadow-ui flex flex-col justify-between">
+                    <div class="flex items-center gap-2 text-muted mb-2">
+                        <i data-lucide="coins" class="w-4 h-4"></i>
+                        <span class="text-sm">Costo Operativo</span>
+                    </div>
+                    <span class="text-3xl font-bold" id="kpi-cost">$0 / km</span>
+                </div>
+            </div>
+
+            <!-- Mantenimiento Predictivo -->
+            <div id="predictive-card"
+                class="bg-surface p-6 rounded-ui border border-borderline shadow-ui flex items-start gap-4">
+                <div class="p-3 rounded-full bg-base border border-borderline mt-1">
+                    <i data-lucide="wrench" class="w-6 h-6 text-accent"></i>
+                </div>
+                <div class="flex-1 w-full">
+                    <h3 class="text-lg font-bold mb-4">Estado de Componentes</h3>
+                    <div id="predictive-container" class="space-y-4">
+                        <!-- Barras generadas dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Evolución -->
+            <div class="bg-surface p-6 rounded-ui border border-borderline shadow-ui">
+                <h3 class="text-lg font-bold mb-4">Evolución de Kilometraje</h3>
+                <div class="chart-container" id="chart-container">
+                    <!-- SVG Background Layer (Evita distorsión con preserveAspectRatio) -->
+                    <svg class="chart-svg" preserveAspectRatio="none" viewBox="0 0 100 100" id="chart-svg"></svg>
+                    <!-- HTML Overlay Layer (Puntos interactivos) -->
+                    <div class="chart-html-layer" id="chart-html"></div>
+                    <!-- Elementos de Hover -->
+                    <div class="hover-line" id="chart-hover-line"></div>
+                    <div class="tooltip" id="chart-tooltip"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA: Mantenimientos -->
+        <div id="view-maint" class="view-hidden space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h2 class="text-2xl font-bold">Historial de Mantenimiento</h2>
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <select onchange="app.setFilter('month', this.value)"
+                        class="filter-month px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent text-sm">
+                        <option value="all">Mes: Todos</option>
+                        <option value="01">Enero</option>
+                        <option value="02">Febrero</option>
+                        <option value="03">Marzo</option>
+                        <option value="04">Abril</option>
+                        <option value="05">Mayo</option>
+                        <option value="06">Junio</option>
+                        <option value="07">Julio</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                    <select onchange="app.setFilter('year', this.value)"
+                        class="filter-year px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent text-sm">
+                        <option value="all">Año: Todos</option>
+                    </select>
+                    <button onclick="app.openModal('modal-maint')"
+                        class="flex items-center gap-2 bg-accent text-surface px-4 py-2 rounded-ui font-medium hover:opacity-90 transition-opacity shadow-ui">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Añadir
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-surface rounded-ui border border-borderline overflow-hidden shadow-ui">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-muted uppercase bg-base border-b border-borderline">
+                            <tr>
+                                <th class="px-6 py-3">Fecha</th>
+                                <th class="px-6 py-3">Kilómetros</th>
+                                <th class="px-6 py-3">Tipo / Detalles</th>
+                                <th class="px-6 py-3">Costo</th>
+                                <th class="px-6 py-3 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-maint-body" class="divide-y divide-borderline">
+                            <!-- Filas generadas por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA: Combustible -->
+        <div id="view-fuel" class="view-hidden space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h2 class="text-2xl font-bold">Registro de Combustible</h2>
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <select onchange="app.setFilter('month', this.value)"
+                        class="filter-month px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent text-sm">
+                        <option value="all">Mes: Todos</option>
+                        <option value="01">Enero</option>
+                        <option value="02">Febrero</option>
+                        <option value="03">Marzo</option>
+                        <option value="04">Abril</option>
+                        <option value="05">Mayo</option>
+                        <option value="06">Junio</option>
+                        <option value="07">Julio</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                    <select onchange="app.setFilter('year', this.value)"
+                        class="filter-year px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent text-sm">
+                        <option value="all">Año: Todos</option>
+                    </select>
+                    <button onclick="app.openModal('modal-fuel')"
+                        class="flex items-center gap-2 bg-accent text-surface px-4 py-2 rounded-ui font-medium hover:opacity-90 transition-opacity shadow-ui">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Cargar
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs Combustible -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div
+                    class="bg-surface p-4 rounded-ui border border-borderline shadow-ui flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-muted mb-1">Rendimiento Global</p>
+                        <p class="text-2xl font-bold" id="kpi-fuel-global">0 km/L</p>
+                    </div>
+                    <i data-lucide="bar-chart-2" class="w-8 h-8 text-muted opacity-50"></i>
+                </div>
+                <div
+                    class="bg-surface p-4 rounded-ui border border-borderline shadow-ui flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-muted mb-1">Último Tanque</p>
+                        <p class="text-2xl font-bold text-accent" id="kpi-fuel-last">0 km/L</p>
+                    </div>
+                    <i data-lucide="fuel" class="w-8 h-8 text-accent opacity-50"></i>
+                </div>
+            </div>
+
+            <div class="bg-surface rounded-ui border border-borderline overflow-hidden shadow-ui">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-muted uppercase bg-base border-b border-borderline">
+                            <tr>
+                                <th class="px-6 py-3">Fecha</th>
+                                <th class="px-6 py-3">Kilómetros</th>
+                                <th class="px-6 py-3">Litros</th>
+                                <th class="px-6 py-3">Costo</th>
+                                <th class="px-6 py-3">Tipo</th>
+                                <th class="px-6 py-3 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-fuel-body" class="divide-y divide-borderline">
+                            <!-- Filas generadas por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA: Calculadora -->
+        <div id="view-calc" class="view-hidden space-y-6">
+            <div class="bg-surface p-6 rounded-ui border border-borderline shadow-ui max-w-xl mx-auto">
+                <h2 class="text-2xl font-bold mb-2">Simulador de Viajes</h2>
+                <p class="text-muted text-sm mb-6">Calcula el costo estimado de tu próximo viaje basado en tu
+                    rendimiento real (<span id="calc-avg-kml" class="font-bold text-accent">-- km/L</span>).</p>
+
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-medium">Distancia a recorrer</label>
+                            <span class="font-bold text-accent" id="calc-km-display">100 km</span>
+                        </div>
+                        <input type="range" id="calc-km-input" min="10" max="1000" step="10" value="100"
+                            class="w-full h-2 bg-base rounded-lg appearance-none cursor-pointer accent-accent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Precio Actual Gasolina (por Litro)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-muted">$</span>
+                            <input type="number" id="calc-price-input" value="1000"
+                                class="w-full pl-8 pr-4 py-2 rounded-ui border border-borderline bg-base focus:outline-none focus:border-accent"
+                                oninput="app.updateCalculator()">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-borderline mt-6">
+                        <div class="flex justify-between items-center text-lg">
+                            <span class="font-medium text-muted">Costo Estimado:</span>
+                            <span class="text-3xl font-bold text-primary" id="calc-result-cost">$0</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm mt-2">
+                            <span class="text-muted">Litros necesarios:</span>
+                            <span class="font-medium" id="calc-result-liters">0 L</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL: Añadir Mantenimiento -->
+    <div id="modal-maint" class="fixed inset-0 z-50 view-hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="app.closeModal('modal-maint')"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">
+            <div class="bg-surface rounded-ui border border-borderline shadow-ui p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Nuevo Mantenimiento</h3>
+                    <button onclick="app.closeModal('modal-maint')" class="text-muted hover:text-primary"><i
+                            data-lucide="x"></i></button>
+                </div>
+                <form id="form-maint" class="space-y-4" onsubmit="app.submitMaint(event)">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-muted mb-1">Fecha (DD/MM/YYYY)</label>
+                            <input type="text" name="date" required placeholder="Ej: 15/05/2026"
+                                class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-muted mb-1">Kilometraje</label>
+                            <input type="number" name="km" required
+                                class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-muted mb-1">Tipo / Categoría</label>
+                        <select name="type" required
+                            class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                            <option value="service">Service General</option>
+                            <option value="cadena">Lubricación/Ajuste Cadena</option>
+                            <option value="aceite">Cambio Aceite/Filtro</option>
+                            <option value="filtro_aire">Filtro de Aire</option>
+                            <option value="neumaticos">Neumáticos</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-muted mb-1">Detalles</label>
+                        <input type="text" name="details" placeholder="Ej: Motul 5100"
+                            class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-muted mb-1">Costo Total ($)</label>
+                        <input type="number" name="cost" required
+                            class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-accent text-surface py-2 rounded-ui font-bold hover:opacity-90 transition-opacity mt-4">Guardar
+                        Registro</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Añadir Combustible -->
+    <div id="modal-fuel" class="fixed inset-0 z-50 view-hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="app.closeModal('modal-fuel')"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">
+            <div class="bg-surface rounded-ui border border-borderline shadow-ui p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Carga de Combustible</h3>
+                    <button onclick="app.closeModal('modal-fuel')" class="text-muted hover:text-primary"><i
+                            data-lucide="x"></i></button>
+                </div>
+                <form id="form-fuel" class="space-y-4" onsubmit="app.submitFuel(event)">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-muted mb-1">Fecha (DD/MM/YYYY)</label>
+                            <input type="text" name="date" required
+                                class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-muted mb-1">Kilometraje Actual</label>
+                            <input type="number" name="km" required
+                                class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-muted mb-1">Litros Cargados</label>
+                            <input type="number" step="0.01" name="liters" required
+                                class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-muted mb-1">Costo ($)</label>
+                            <input type="number" name="cost" required
+                                class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-muted mb-1">Tipo de Carga</label>
+                        <select name="type" required
+                            class="w-full px-3 py-2 rounded-md border border-borderline bg-base focus:outline-none focus:border-accent">
+                            <option value="full">Tanque Lleno (Para cálculo exacto)</option>
+                            <option value="parcial">Carga Parcial</option>
+                        </select>
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-accent text-surface py-2 rounded-ui font-bold hover:opacity-90 transition-opacity mt-4">Guardar
+                        Carga</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Ajustes / Backup -->
+    <div id="modal-settings" class="fixed inset-0 z-50 view-hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="app.closeModal('modal-settings')"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-sm p-4">
+            <div class="bg-surface rounded-ui border border-borderline shadow-ui p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">Ajustes y Datos</h3>
+                    <button onclick="app.closeModal('modal-settings')" class="text-muted hover:text-primary"><i
+                            data-lucide="x"></i></button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="p-4 rounded-ui border border-borderline bg-base text-center">
+                        <i data-lucide="download-cloud" class="w-8 h-8 mx-auto mb-2 text-accent"></i>
+                        <h4 class="font-bold mb-1">Copia de Seguridad</h4>
+                        <p class="text-xs text-muted mb-4">Exporta tus datos en un archivo para no perderlos o pasarlos
+                            a otro dispositivo.</p>
+                        <button onclick="app.exportBackup()"
+                            class="w-full bg-accent text-surface py-2 rounded-md font-bold hover:opacity-90 transition-opacity mb-2">Exportar
+                            Datos (.json)</button>
+
+                        <input type="file" id="import-file" class="hidden" accept=".json"
+                            onchange="app.importBackup(event)">
+                        <button onclick="app.triggerImport()"
+                            class="w-full bg-transparent border border-borderline text-primary py-2 rounded-md font-bold hover:bg-surface transition-colors">Importar
+                            Datos</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Principal de la App -->
+    <script>
+        const app = {
+            // Estado Global
+            state: {
+                theme: localStorage.getItem('mt_theme') || 'vercel',
+                activeTab: 'dashboard',
+                maintData: JSON.parse(localStorage.getItem('mt_maint')) || [],
+                fuelData: JSON.parse(localStorage.getItem('mt_fuel')) || [],
+                filters: {
+                    month: 'all',
+                    year: 'all'
+                },
+                kpis: {
+                    totalKm: 0,
+                    kml: 0,
+                    lastKml: 0,
+                    costPerKm: 0,
+                    kmPerDay: 0
+                }
+            },
+
+            // --- INICIALIZACIÓN ---
+            init() {
+                // Mock data inicial si está vacío para poder ver el diseño
+                if (this.state.maintData.length === 0 && this.state.fuelData.length === 0) {
+                    this.injectMockData();
+                }
+
+                lucide.createIcons();
+                this.applyTheme();
+                this.setupPWA();
+                this.updateYearOptions();
+                this.setupEventListeners();
+                this.calculateKPIs();
+                this.switchTab('dashboard'); // Renderiza y ajusta la UI inicial
+
+                // Configurar fecha de hoy en formularios por defecto
+                const hoy = new Date();
+                const fechaStr = `${String(hoy.getDate()).padStart(2, '0')}/${String(hoy.getMonth() + 1).padStart(2, '0')}/${hoy.getFullYear()}`;
+                document.querySelector('#form-maint input[name="date"]').value = fechaStr;
+                document.querySelector('#form-fuel input[name="date"]').value = fechaStr;
+            },
+
+            injectMockData() {
+                this.state.fuelData = [
+                    { id: 1, date: "01/01/2026", km: 0, liters: 12, cost: 12000, type: "full" },
+                    { id: 2, date: "15/01/2026", km: 350, liters: 10, cost: 10000, type: "full" },
+                    { id: 3, date: "02/02/2026", km: 680, liters: 9.5, cost: 9500, type: "full" },
+                    { id: 4, date: "20/02/2026", km: 1050, liters: 11, cost: 11000, type: "full" }
+                ];
+                this.state.maintData = [
+                    { id: 1, date: "01/01/2026", km: 0, type: "compra", details: "Moto Nueva", cost: 0 },
+                    { id: 2, date: "25/01/2026", km: 500, type: "cadena", details: "Ajuste cadena primer service", cost: 0 },
+                    { id: 3, date: "22/02/2026", km: 1000, type: "service", details: "Service Oficial 1000km", cost: 45000 }
+                ];
+                this.saveData();
+            },
+
+            // --- UTILIDADES ---
+            saveData() {
+                localStorage.setItem('mt_maint', JSON.stringify(this.state.maintData));
+                localStorage.setItem('mt_fuel', JSON.stringify(this.state.fuelData));
+            },
+
+            parseDate(dateStr) {
+                const [d, m, y] = dateStr.split('/');
+                return new Date(y, m - 1, d);
+            },
+
+            formatMoney(num) {
+                return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(num);
+            },
+
+            // --- FILTROS ---
+            setFilter(key, value) {
+                this.state.filters[key] = value;
+                // Sincronizar selectores en ambas vistas
+                document.querySelectorAll(`.filter-${key}`).forEach(el => el.value = value);
+
+                if (this.state.activeTab === 'maint') this.renderMaintTable();
+                if (this.state.activeTab === 'fuel') this.renderFuelTable();
+            },
+
+            updateYearOptions() {
+                const years = new Set();
+                [...this.state.maintData, ...this.state.fuelData].forEach(d => {
+                    if (d.date) years.add(d.date.split('/')[2]);
+                });
+
+                const yearSelects = document.querySelectorAll('.filter-year');
+                const currentYear = this.state.filters.year;
+
+                yearSelects.forEach(select => {
+                    select.innerHTML = '<option value="all">Año: Todos</option>';
+                    Array.from(years).sort().reverse().forEach(y => {
+                        const opt = document.createElement('option');
+                        opt.value = y;
+                        opt.text = y;
+                        select.appendChild(opt);
+                    });
+                    select.value = currentYear;
+                });
+            },
+
+            // --- LÓGICA DE NEGOCIO (Cálculos Complejos) ---
+            calculateKPIs() {
+                // 1. Total KM
+                const maxMaintKm = Math.max(0, ...this.state.maintData.map(d => Number(d.km)));
+                const maxFuelKm = Math.max(0, ...this.state.fuelData.map(d => Number(d.km)));
+                this.state.kpis.totalKm = Math.max(maxMaintKm, maxFuelKm);
+
+                // 2. Rendimiento (Km/L) - Solo toma cargas full para mayor precisión
+                const fullFuels = [...this.state.fuelData]
+                    .filter(f => f.type === 'full')
+                    .sort((a, b) => this.parseDate(a.date) - this.parseDate(b.date));
+
+                if (fullFuels.length >= 2) {
+                    let totalLiters = 0;
+                    // Sumamos los litros desde la segunda carga full hasta la última
+                    for (let i = 1; i < fullFuels.length; i++) {
+                        totalLiters += Number(fullFuels[i].liters);
+                    }
+                    const kmDiff = fullFuels[fullFuels.length - 1].km - fullFuels[0].km;
+                    this.state.kpis.kml = (kmDiff / totalLiters).toFixed(1);
+
+                    // Rendimiento del ÚLTIMO tanque
+                    const last = fullFuels[fullFuels.length - 1];
+                    const prev = fullFuels[fullFuels.length - 2];
+                    this.state.kpis.lastKml = ((last.km - prev.km) / last.liters).toFixed(1);
+                } else {
+                    this.state.kpis.kml = 0;
+                    this.state.kpis.lastKml = 0;
+                }
+
+                // 3. Costo Operativo por KM (Excluyendo "compra")
+                const totalMaintCost = this.state.maintData
+                    .filter(m => m.type !== 'compra')
+                    .reduce((acc, curr) => acc + Number(curr.cost), 0);
+                const totalFuelCost = this.state.fuelData
+                    .reduce((acc, curr) => acc + Number(curr.cost), 0);
+
+                const totalCost = totalMaintCost + totalFuelCost;
+                this.state.kpis.costPerKm = this.state.kpis.totalKm > 0 ? (totalCost / this.state.kpis.totalKm).toFixed(2) : 0;
+
+                // 4. KM por Día (Para predictivo)
+                const allDates = [...this.state.maintData, ...this.state.fuelData]
+                    .map(d => this.parseDate(d.date))
+                    .sort((a, b) => a - b);
+
+                if (allDates.length > 1) {
+                    const daysDiff = (allDates[allDates.length - 1] - allDates[0]) / (1000 * 60 * 60 * 24);
+                    this.state.kpis.kmPerDay = daysDiff > 0 ? this.state.kpis.totalKm / daysDiff : 0;
+                }
+
+                this.renderDashboard();
+            },
+
+            // --- INTERFAZ / RENDERIZADO ---
+            switchTab(tabId) {
+                this.state.activeTab = tabId;
+
+                // Ocultar todas las vistas
+                document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('view-hidden'));
+                document.getElementById(`view-${tabId}`).classList.remove('view-hidden');
+
+                // Actualizar estilos de tabs
+                const tabs = ['dashboard', 'maint', 'fuel', 'calc'];
+                tabs.forEach(t => {
+                    const btn = document.getElementById(`tab-${t}`);
+                    if (t === tabId) {
+                        btn.className = "px-4 py-2 rounded-ui text-sm font-medium transition-colors bg-accent text-surface shadow-ui";
+                    } else {
+                        btn.className = "px-4 py-2 rounded-ui text-sm font-medium transition-colors text-muted hover:text-primary";
+                    }
+                });
+
+                // Renderizar la vista activa
+                if (tabId === 'dashboard') {
+                    this.calculateKPIs(); // Recalcula y renderiza dashboard
+                } else if (tabId === 'maint') {
+                    this.renderMaintTable();
+                } else if (tabId === 'fuel') {
+                    this.renderFuelTable();
+                } else if (tabId === 'calc') {
+                    this.updateCalculator();
+                }
+            },
+
+            renderDashboard() {
+                // KPIs
+                document.getElementById('kpi-km').innerText = `${this.state.kpis.totalKm.toLocaleString('es-AR')} km`;
+                document.getElementById('kpi-kml').innerText = `${this.state.kpis.kml} km/L`;
+                document.getElementById('kpi-cost').innerText = `$${this.state.kpis.costPerKm} / km`;
+
+                // Mantenimiento Predictivo Múltiple
+                const container = document.getElementById('predictive-container');
+                const currentKm = this.state.kpis.totalKm;
+                const kmPerDay = this.state.kpis.kmPerDay || 15; // Promedio seguro por defecto
+
+                // Configuración de intervalos (km y opcionalmente días)
+                const tasks = [
+                    { id: 'cadena', name: 'Lubricación Cadena', kmLimit: 500 },
+                    { id: 'service', name: 'Service General', kmLimit: 2300, warnDays: 21 }, // Avisa 3 semanas antes
+                    { id: 'filtro_aire', name: 'Filtro de Aire', kmLimit: 10000, daysLimit: 365 }, // 10k km o 1 año
+                    { id: 'neumaticos', name: 'Neumáticos', kmLimit: 15000, daysLimit: 1095 } // 15k km o 3 años
+                ];
+
+                let html = '';
+                const hoy = new Date();
+
+                tasks.forEach(task => {
+                    // Buscar último registro de este tipo (o 'compra' como inicio por defecto)
+                    const records = this.state.maintData.filter(m => m.type === task.id || m.type === 'service' || m.type === 'compra').sort((a, b) => Number(a.km) - Number(b.km));
+                    const lastRecord = records.length > 0 ? records[records.length - 1] : { km: 0, date: `${hoy.getDate()}/${hoy.getMonth() + 1}/${hoy.getFullYear()}` };
+
+                    const kmPassed = currentKm - Number(lastRecord.km);
+                    const kmLeft = Math.max(0, task.kmLimit - kmPassed);
+                    let percentKm = Math.min((kmPassed / task.kmLimit) * 100, 100);
+
+                    let percent = percentKm;
+                    let statusText = `Faltan ${kmLeft} km`;
+                    let warnColor = 'bg-accent';
+                    let isWarning = percent >= 100;
+
+                    // Evaluar también por tiempo si aplica (ej. Neumáticos, Filtros)
+                    if (task.daysLimit) {
+                        const daysPassed = (hoy - this.parseDate(lastRecord.date)) / (1000 * 60 * 60 * 24);
+                        const percentDays = Math.min((daysPassed / task.daysLimit) * 100, 100);
+                        if (percentDays > percentKm) {
+                            percent = percentDays;
+                            const daysLeft = Math.max(0, Math.round(task.daysLimit - daysPassed));
+                            statusText = isWarning ? statusText : `Faltan ${daysLeft} días`;
+                            isWarning = percent >= 100;
+                        }
+                    }
+
+                    // Aviso anticipado para pedir turno (Service)
+                    if (task.warnDays && !isWarning) {
+                        const estimatedDaysLeft = kmLeft / kmPerDay;
+                        if (estimatedDaysLeft <= task.warnDays) {
+                            warnColor = 'bg-[#f59e0b]'; // orange-500
+                            statusText = `¡Pedir Turno! (~${Math.round(estimatedDaysLeft)} días)`;
+                        }
+                    }
+
+                    if (isWarning) {
+                        warnColor = 'bg-[#ef4444]'; // red-500
+                        statusText = '¡Revisión Requerida!';
+                    }
+
+                    html += `
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-bold">${task.name}</span>
+                                <span class="text-xs ${isWarning ? 'text-red-500 font-bold' : (warnColor === 'bg-[#f59e0b]' ? 'text-orange-500 font-bold' : 'text-muted')}">${statusText}</span>
+                            </div>
+                            <div class="w-full bg-base rounded-full h-2 border border-borderline">
+                                <div class="${warnColor} h-2 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+                // Renderizar gráfico
+                this.renderChart();
+            },
+
+            renderMaintTable() {
+                const tbody = document.getElementById('table-maint-body');
+
+                // Aplicar Filtros
+                let filtered = this.state.maintData;
+                if (this.state.filters.month !== 'all') {
+                    filtered = filtered.filter(d => d.date.split('/')[1] === this.state.filters.month);
+                }
+                if (this.state.filters.year !== 'all') {
+                    filtered = filtered.filter(d => d.date.split('/')[2] === this.state.filters.year);
+                }
+
+                const sorted = [...filtered].sort((a, b) => this.parseDate(b.date) - this.parseDate(a.date));
+
+                tbody.innerHTML = sorted.map(m => `
+                    <tr class="hover:bg-base/50 transition-colors">
+                        <td class="px-6 py-4 font-medium">${m.date}</td>
+                        <td class="px-6 py-4">${m.km} km</td>
+                        <td class="px-6 py-4"><span class="capitalize font-medium">${m.type}</span><br><span class="text-xs text-muted">${m.details || '-'}</span></td>
+                        <td class="px-6 py-4">${this.formatMoney(m.cost)}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="app.deleteRecord('maint', ${m.id})" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            },
+
+            renderFuelTable() {
+                // Renderizar KPIs primero
+                document.getElementById('kpi-fuel-global').innerText = `${this.state.kpis.kml} km/L`;
+                document.getElementById('kpi-fuel-last').innerText = `${this.state.kpis.lastKml} km/L`;
+
+                const tbody = document.getElementById('table-fuel-body');
+
+                // Aplicar Filtros
+                let filtered = this.state.fuelData;
+                if (this.state.filters.month !== 'all') {
+                    filtered = filtered.filter(d => d.date.split('/')[1] === this.state.filters.month);
+                }
+                if (this.state.filters.year !== 'all') {
+                    filtered = filtered.filter(d => d.date.split('/')[2] === this.state.filters.year);
+                }
+
+                const sorted = [...filtered].sort((a, b) => this.parseDate(b.date) - this.parseDate(a.date));
+
+                tbody.innerHTML = sorted.map(f => `
+                    <tr class="hover:bg-base/50 transition-colors">
+                        <td class="px-6 py-4 font-medium">${f.date}</td>
+                        <td class="px-6 py-4">${f.km} km</td>
+                        <td class="px-6 py-4">${f.liters} L</td>
+                        <td class="px-6 py-4">${this.formatMoney(f.cost)}</td>
+                        <td class="px-6 py-4 capitalize">${f.type}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="app.deleteRecord('fuel', ${f.id})" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            },
+
+            deleteRecord(type, id) {
+                if (confirm('¿Estás seguro de eliminar este registro?')) {
+                    if (type === 'maint') {
+                        this.state.maintData = this.state.maintData.filter(x => x.id !== id);
+                    } else {
+                        this.state.fuelData = this.state.fuelData.filter(x => x.id !== id);
+                    }
+                    this.saveData();
+                    this.calculateKPIs();
+                    if (type === 'maint') this.renderMaintTable();
+                    if (type === 'fuel') this.renderFuelTable();
+                }
+            },
+
+            // --- GRÁFICO SVG CUSTOM (Solución Anti-Distorsión) ---
+            renderChart() {
+                const svg = document.getElementById('chart-svg');
+                const htmlLayer = document.getElementById('chart-html');
+                const tooltip = document.getElementById('chart-tooltip');
+                const hoverLine = document.getElementById('chart-hover-line');
+
+                // Limpiar
+                svg.innerHTML = '';
+                htmlLayer.innerHTML = '';
+
+                // Usar SOLO datos de combustible y calcular uso diario (derivada)
+                const sortedPoints = [...this.state.fuelData]
+                    .sort((a, b) => this.parseDate(a.date) - this.parseDate(b.date))
+                    .map(d => ({
+                        date: d.date,
+                        km: Number(d.km),
+                        time: this.parseDate(d.date).getTime()
+                    }));
+
+                if (sortedPoints.length < 2) return; // No hay data suficiente
+
+                // Calcular "km por día" entre cada tramo de carga
+                for (let i = 0; i < sortedPoints.length; i++) {
+                    if (i === 0) {
+                        sortedPoints[i].kmPerDay = 0;
+                    } else {
+                        const prev = sortedPoints[i - 1];
+                        const curr = sortedPoints[i];
+                        const days = (curr.time - prev.time) / (1000 * 60 * 60 * 24);
+                        sortedPoints[i].kmPerDay = days > 0 ? ((curr.km - prev.km) / days).toFixed(1) : 0;
+                    }
+                }
+
+                const minKm = Math.min(...sortedPoints.map(p => p.km));
+                const maxKm = Math.max(...sortedPoints.map(p => p.km));
+                const kmRange = (maxKm - minKm) || 1; // evitar division por 0
+
+                // Convertir a coordenadas 0-100 para SVG preserveAspectRatio="none"
+                const coords = sortedPoints.map((p, i) => {
+                    const x = (i / (sortedPoints.length - 1)) * 100;
+                    const y = 100 - (((p.km - minKm) / kmRange) * 80) - 10; // Dejar padding
+                    return { x, y, data: p };
+                });
+
+                // Construir Curva Bezier Suave
+                let pathD = `M ${coords[0].x} ${coords[0].y}`;
+                for (let i = 0; i < coords.length - 1; i++) {
+                    const p1 = coords[i];
+                    const p2 = coords[i + 1];
+                    const cx = (p1.x + p2.x) / 2;
+                    pathD += ` C ${cx} ${p1.y}, ${cx} ${p2.y}, ${p2.x} ${p2.y}`;
+                }
+
+                // Path de Área (Relleno)
+                const areaD = `${pathD} L ${coords[coords.length - 1].x} 100 L ${coords[0].x} 100 Z`;
+
+                svg.innerHTML = `
+                    <!-- Grid horizontal -->
+                    <line x1="0" y1="20" x2="100" y2="20" stroke="var(--border-color)" stroke-dasharray="2" stroke-width="0.5"/>
+                    <line x1="0" y1="50" x2="100" y2="50" stroke="var(--border-color)" stroke-dasharray="2" stroke-width="0.5"/>
+                    <line x1="0" y1="80" x2="100" y2="80" stroke="var(--border-color)" stroke-dasharray="2" stroke-width="0.5"/>
+                    
+                    <!-- Área y Línea -->
+                    <path d="${areaD}" fill="var(--chart-fill)" />
+                    <path d="${pathD}" fill="none" stroke="var(--chart-line)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linecap="round" />
+                `;
+
+                // Construir Puntos HTML (No se deforman al estirar contenedor)
+                coords.forEach(c => {
+                    const dot = document.createElement('div');
+                    dot.className = 'chart-point';
+                    dot.style.left = `${c.x}%`;
+                    dot.style.top = `${c.y}%`;
+
+                    dot.addEventListener('mouseenter', () => {
+                        tooltip.style.opacity = '1';
+                        tooltip.style.left = `${c.x}%`;
+                        tooltip.style.top = `${c.y}%`;
+
+                        let extraInfo = c.data.kmPerDay > 0
+                            ? `<br/><span class="text-muted text-[10px] mt-1 block border-t border-borderline pt-1">Uso: ~${c.data.kmPerDay} km/día</span>`
+                            : '';
+
+                        tooltip.innerHTML = `<strong>${c.data.date}</strong><br/>${c.data.km} km${extraInfo}`;
+
+                        hoverLine.style.opacity = '1';
+                        hoverLine.style.left = `${c.x}%`;
+                    });
+
+                    dot.addEventListener('mouseleave', () => {
+                        tooltip.style.opacity = '0';
+                        hoverLine.style.opacity = '0';
+                    });
+
+                    htmlLayer.appendChild(dot);
+                });
+            },
+
+            // --- CALCULADORA ---
+            updateCalculator() {
+                const inputKm = document.getElementById('calc-km-input');
+                const displayKm = document.getElementById('calc-km-display');
+                const priceInput = document.getElementById('calc-price-input');
+                const resultCost = document.getElementById('calc-result-cost');
+                const resultLiters = document.getElementById('calc-result-liters');
+                const avgKmlDisplay = document.getElementById('calc-avg-kml');
+
+                const km = Number(inputKm.value);
+                const price = Number(priceInput.value) || 0;
+                const kml = this.state.kpis.kml || 25; // Default 25km/L si no hay data
+
+                displayKm.innerText = `${km} km`;
+                avgKmlDisplay.innerText = `${kml} km/L`;
+
+                const litersNeeded = km / kml;
+                const estimatedCost = litersNeeded * price;
+
+                resultLiters.innerText = `${litersNeeded.toFixed(2)} L`;
+                resultCost.innerText = this.formatMoney(estimatedCost);
+            },
+
+            // --- MODALES Y FORMS ---
+            openModal(id) {
+                document.getElementById(id).classList.remove('view-hidden');
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.add('view-hidden');
+            },
+
+            submitMaint(e) {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                const newRecord = {
+                    id: Date.now(),
+                    date: fd.get('date'),
+                    km: Number(fd.get('km')),
+                    type: fd.get('type'),
+                    details: fd.get('details'),
+                    cost: Number(fd.get('cost'))
+                };
+                this.state.maintData.push(newRecord);
+                this.saveData();
+                this.closeModal('modal-maint');
+                e.target.reset();
+                this.switchTab('dashboard'); // Fuerza recálculo y actualización de UI
+            },
+
+            submitFuel(e) {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                const newRecord = {
+                    id: Date.now(),
+                    date: fd.get('date'),
+                    km: Number(fd.get('km')),
+                    liters: Number(fd.get('liters')),
+                    cost: Number(fd.get('cost')),
+                    type: fd.get('type')
+                };
+                this.state.fuelData.push(newRecord);
+                this.saveData();
+                this.closeModal('modal-fuel');
+                e.target.reset();
+                this.updateYearOptions(); // Actualizar filtros si es un año nuevo
+                this.switchTab('dashboard');
+            },
+
+            // --- BACKUP Y RESTAURACIÓN ---
+            exportBackup() {
+                const data = {
+                    maint: this.state.maintData,
+                    fuel: this.state.fuelData,
+                    theme: this.state.theme,
+                    exportDate: new Date().toISOString()
+                };
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.setAttribute("href", dataStr);
+                const dateStr = new Date().toISOString().split('T')[0];
+                dlAnchorElem.setAttribute("download", `MotoTracker_Backup_${dateStr}.json`);
+                document.body.appendChild(dlAnchorElem);
+                dlAnchorElem.click();
+                document.body.removeChild(dlAnchorElem);
+                this.closeModal('modal-settings');
+            },
+
+            triggerImport() {
+                document.getElementById('import-file').click();
+            },
+
+            importBackup(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data.maint && data.fuel) {
+                            this.state.maintData = data.maint;
+                            this.state.fuelData = data.fuel;
+                            if (data.theme) this.state.theme = data.theme;
+
+                            this.saveData();
+                            localStorage.setItem('mt_theme', this.state.theme);
+
+                            this.applyTheme();
+                            this.updateYearOptions();
+                            this.calculateKPIs();
+                            this.switchTab('dashboard');
+                            this.closeModal('modal-settings');
+
+                            // Limpiar input
+                            event.target.value = '';
+                        }
+                    } catch (error) {
+                        console.error("Error al leer el archivo de backup", error);
+                    }
+                };
+                reader.readAsText(file);
+            },
+
+            // --- PWA (Aplicación Instalable) ---
+            setupPWA() {
+                // Generar Icono en Base64 para el Manifest (Usando SVG de Lucide)
+                const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>';
+                const iconUrl = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+
+                const manifest = {
+                    name: "MotoTracker",
+                    short_name: "MotoTracker",
+                    start_url: ".",
+                    display: "standalone",
+                    background_color: this.state.theme === 'cute' ? "#fdf2f8" : "#000000",
+                    theme_color: this.state.theme === 'cute' ? "#ec4899" : "#ffffff",
+                    icons: [
+                        { src: iconUrl, sizes: "192x192", type: "image/svg+xml" },
+                        { src: iconUrl, sizes: "512x512", type: "image/svg+xml" }
+                    ]
+                };
+
+                document.getElementById('pwa-manifest').setAttribute('href', 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest)));
+
+                // Registrar un Service Worker mínimo a través de Blob para permitir instalación PWA
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const swCode = "self.addEventListener('install', (e) => self.skipWaiting()); self.addEventListener('activate', (e) => self.clients.claim()); self.addEventListener('fetch', (e) => {});";
+                        const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Info:', err));
+                    } catch (e) { console.log('SW no soportado en este entorno', e); }
+                }
+            },
+
+            // --- THEMA (Vercel vs Cute) ---
+            applyTheme() {
+                const isCute = this.state.theme === 'cute';
+                if (isCute) {
+                    document.documentElement.classList.add('theme-cute');
+                    document.getElementById('themeIcon').setAttribute('data-lucide', 'sun');
+                    document.getElementById('meta-theme-color').setAttribute('content', '#ec4899');
+                } else {
+                    document.documentElement.classList.remove('theme-cute');
+                    document.getElementById('themeIcon').setAttribute('data-lucide', 'moon');
+                    document.getElementById('meta-theme-color').setAttribute('content', '#000000');
+                }
+                lucide.createIcons();
+
+                // Actualizar colores del Manifest PWA si ya está inyectado
+                if (document.getElementById('pwa-manifest').getAttribute('href')) {
+                    this.setupPWA();
+                }
+
+                // Redibujar gráfico para aplicar colores del tema
+                if (this.state.activeTab === 'dashboard') {
+                    this.renderChart();
+                }
+            },
+
+            toggleTheme() {
+                this.state.theme = this.state.theme === 'vercel' ? 'cute' : 'vercel';
+                localStorage.setItem('mt_theme', this.state.theme);
+                this.applyTheme();
+            },
+
+            setupEventListeners() {
+                document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
+
+                // Event listener para el range slider de la calculadora
+                document.getElementById('calc-km-input').addEventListener('input', () => this.updateCalculator());
+
+                // Redimensionar ventana regenera el gráfico para asegurar SVG exacto
+                window.addEventListener('resize', () => {
+                    if (this.state.activeTab === 'dashboard') this.renderChart();
+                });
+            }
+        };
+
+        // Iniciar al cargar el DOM
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+
+</html>
