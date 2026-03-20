@@ -239,10 +239,10 @@
                 </div>
                 <div class="bg-surface p-6 rounded-ui border border-borderline shadow-ui flex flex-col justify-between">
                     <div class="flex items-center gap-2 text-muted mb-2">
-                        <i data-lucide="coins" class="w-4 h-4"></i>
-                        <span class="text-sm">Costo Operativo</span>
+                        <i data-lucide="fuel" class="w-4 h-4"></i>
+                        <span class="text-sm">Último Rendimiento</span>
                     </div>
-                    <span class="text-3xl font-bold" id="kpi-cost">$0 / km</span>
+                    <span class="text-3xl font-bold" id="kpi-last-yield">0 km/L</span>
                 </div>
             </div>
 
@@ -373,7 +373,7 @@
                     class="bg-surface p-4 rounded-ui border border-borderline shadow-ui flex items-center justify-between">
                     <div>
                         <p class="text-sm text-muted mb-1">Último Tanque</p>
-                        <p class="text-2xl font-bold text-accent" id="kpi-fuel-last">0 km/L</p>
+                        <p class="text-2xl font-bold" id="kpi-fuel-last">0 km/L</p>
                     </div>
                     <i data-lucide="fuel" class="w-8 h-8 text-accent opacity-50"></i>
                 </div>
@@ -421,7 +421,7 @@
                         <label class="block text-sm font-medium mb-2">Precio Actual Gasolina (por Litro)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-muted">$</span>
-                            <input type="number" id="calc-price-input" value="1000"
+                            <input type="number" id="calc-price-input" value="1817"
                                 class="w-full pl-8 pr-4 py-2 rounded-ui border border-borderline bg-base focus:outline-none focus:border-accent"
                                 oninput="app.updateCalculator()">
                         </div>
@@ -782,7 +782,7 @@
                 // KPIs
                 document.getElementById('kpi-km').innerText = `${this.state.kpis.totalKm.toLocaleString('es-AR')} km`;
                 document.getElementById('kpi-kml').innerText = `${this.state.kpis.kml} km/L`;
-                document.getElementById('kpi-cost').innerText = `$${this.state.kpis.costPerKm} / km`;
+                document.getElementById('kpi-last-yield').innerText = `${this.state.kpis.lastKml} km/L`;
 
                 // Mantenimiento Predictivo Múltiple
                 const container = document.getElementById('predictive-container');
@@ -1047,7 +1047,7 @@
                 const avgKmlDisplay = document.getElementById('calc-avg-kml');
 
                 const km = Number(inputKm.value);
-                const price = Number(priceInput.value) || 0;
+                const price = Number(priceInput.value) || 1817;
                 const kml = this.state.kpis.kml || 25; // Default 25km/L si no hay data
 
                 displayKm.innerText = `${km} km`;
