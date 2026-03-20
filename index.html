@@ -5,9 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#000000" id="meta-theme-color">
-    <link rel="manifest" id="pwa-manifest">
-    <link rel="apple-touch-icon"
-        href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VjNDg5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIj48L2NpcmNsZT48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIj48L2NpcmNsZT48L3N2Zz4=">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.svg">
     <title>MotoTracker Web App</title>
 
     <!-- Fuentes: Inter para Vercel, Quicksand para Cute -->
@@ -626,15 +625,25 @@
 
             injectMockData() {
                 this.state.fuelData = [
-                    { id: 1, date: "01/01/2026", km: 0, liters: 12, cost: 12000, type: "full" },
-                    { id: 2, date: "15/01/2026", km: 350, liters: 10, cost: 10000, type: "full" },
-                    { id: 3, date: "02/02/2026", km: 680, liters: 9.5, cost: 9500, type: "full" },
-                    { id: 4, date: "20/02/2026", km: 1050, liters: 11, cost: 11000, type: "full" }
+                    { id: 1, date: "05/04/2025", km: 0, liters: 12, cost: 12000, type: "full" },
+                    { id: 2, date: "17/07/2025", km: 390, liters: 12, cost: 12500, type: "full" },
+                    { id: 3, date: "11/09/2025", km: 681, liters: 10, cost: 14305, type: "full" },
+                    { id: 4, date: "13/10/2025", km: 965, liters: 7.9, cost: 11200, type: "full" },
+                    { id: 5, date: "02/11/2025", km: 1214, liters: 6.6, cost: 10000, type: "full" },
+                    { id: 6, date: "04/12/2025", km: 1610, liters: 9, cost: 15159, type: "full" },
+                    { id: 7, date: "01/01/2026", km: 1973, liters: 8.3, cost: 14000, type: "full" },
+                    { id: 8, date: "12/01/2026", km: 2160, liters: 5, cost: 8273, type: "full" },
+                    { id: 9, date: "02/02/2026", km: 2446, liters: 5.44, cost: 9000, type: "full" },
+                    { id: 10, date: "13/02/2026", km: 2700, liters: 6.05, cost: 10000, type: "full" },
+                    { id: 11, date: "13/03/2026", km: 3053, liters: 8.251, cost: 15000, type: "full" },
                 ];
                 this.state.maintData = [
-                    { id: 1, date: "01/01/2026", km: 0, type: "compra", details: "Moto Nueva", cost: 0 },
-                    { id: 2, date: "25/01/2026", km: 500, type: "cadena", details: "Ajuste cadena primer service", cost: 0 },
-                    { id: 3, date: "22/02/2026", km: 1000, type: "service", details: "Service Oficial 1000km", cost: 45000 }
+                    { id: 1, date: "01/04/2025", km: 0, type: "compra", details: "Moto Nueva", cost: 3600000 },
+                    { id: 2, date: "05/06/2025", km: 261, type: "service", details: "Comprobante en carpeta moto (Service 1)", cost: 70249 },
+                    { id: 3, date: "09/09/2025", km: 777, type: "service", details: "Revisión filtro, aceite, lubricación cadena", cost: 25000 },
+                    { id: 4, date: "26/12/2025", km: 1858, type: "service", details: "Cambio Aceite y filtro de aire (Motul 5100 15W-50 API SP - Jaso T 903)", cost: 18000 },
+                    { id: 5, date: "06/02/2026", km: 2550, type: "cadena", details: "Lubricación de cadena", cost: 20300 },
+                    { id: 6, date: "09/02/2026", km: 2642, type: "service", details: "TanoMotos - Cambio de aceite, tensado cadena, etc.", cost: 91900 },
                 ];
                 this.saveData();
             },
@@ -780,20 +789,20 @@
                 const currentKm = this.state.kpis.totalKm;
                 const kmPerDay = this.state.kpis.kmPerDay || 15; // Promedio seguro por defecto
 
-                // Configuración de intervalos (km y opcionalmente días)
+                // Configuración de intervalos (km y opcionalmente días) y con qué registros se reinicia
                 const tasks = [
-                    { id: 'cadena', name: 'Lubricación Cadena', kmLimit: 500 },
-                    { id: 'service', name: 'Service General', kmLimit: 2300, warnDays: 21 }, // Avisa 3 semanas antes
-                    { id: 'filtro_aire', name: 'Filtro de Aire', kmLimit: 10000, daysLimit: 365 }, // 10k km o 1 año
-                    { id: 'neumaticos', name: 'Neumáticos', kmLimit: 15000, daysLimit: 1095 } // 15k km o 3 años
+                    { id: 'cadena', name: 'Lubricación Cadena', kmLimit: 500, warnDays: 30, resetsWith: ['cadena', 'compra'] },
+                    { id: 'service', name: 'Service General', kmLimit: 2300, warnDays: 30, resetsWith: ['service', 'compra'] }, // Avisa 3 semanas antes
+                    { id: 'filtro_aire', name: 'Filtro de Aire', kmLimit: 6000, daysLimit: 365, warnDays: 30, resetsWith: ['filtro_aire', 'compra'] }, // 10k km o 1 año
+                    { id: 'neumaticos', name: 'Neumáticos', kmLimit: 8000, daysLimit: 1095, warnDays: 90, resetsWith: ['neumaticos', 'compra'] } // 8k km o 3 años, NO se resetea con service
                 ];
 
                 let html = '';
                 const hoy = new Date();
 
                 tasks.forEach(task => {
-                    // Buscar último registro de este tipo (o 'compra' como inicio por defecto)
-                    const records = this.state.maintData.filter(m => m.type === task.id || m.type === 'service' || m.type === 'compra').sort((a, b) => Number(a.km) - Number(b.km));
+                    // Buscar último registro que coincida con los tipos que resetean esta tarea específica
+                    const records = this.state.maintData.filter(m => task.resetsWith.includes(m.type)).sort((a, b) => Number(a.km) - Number(b.km));
                     const lastRecord = records.length > 0 ? records[records.length - 1] : { km: 0, date: `${hoy.getDate()}/${hoy.getMonth() + 1}/${hoy.getFullYear()}` };
 
                     const kmPassed = currentKm - Number(lastRecord.km);
@@ -959,14 +968,18 @@
                     }
                 }
 
-                const minKm = Math.min(...sortedPoints.map(p => p.km));
+                const minTime = Math.min(...sortedPoints.map(p => p.time));
+                const maxTime = Math.max(...sortedPoints.map(p => p.time));
+                const timeRange = (maxTime - minTime) || 1;
+
                 const maxKm = Math.max(...sortedPoints.map(p => p.km));
-                const kmRange = (maxKm - minKm) || 1; // evitar division por 0
+                const minKm = 0; // Base en 0 para proporciones reales
+                const kmRange = maxKm || 1;
 
                 // Convertir a coordenadas 0-100 para SVG preserveAspectRatio="none"
                 const coords = sortedPoints.map((p, i) => {
-                    const x = (i / (sortedPoints.length - 1)) * 100;
-                    const y = 100 - (((p.km - minKm) / kmRange) * 80) - 10; // Dejar padding
+                    const x = ((p.time - minTime) / timeRange) * 100;
+                    const y = 100 - ((p.km / kmRange) * 80) - 10; // Dejar padding
                     return { x, y, data: p };
                 });
 
@@ -1150,32 +1163,12 @@
 
             // --- PWA (Aplicación Instalable) ---
             setupPWA() {
-                // Generar Icono en Base64 para el Manifest (Usando SVG de Lucide)
-                const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>';
-                const iconUrl = 'data:image/svg+xml;base64,' + btoa(iconSvg);
-
-                const manifest = {
-                    name: "MotoTracker",
-                    short_name: "MotoTracker",
-                    start_url: ".",
-                    display: "standalone",
-                    background_color: this.state.theme === 'cute' ? "#fdf2f8" : "#000000",
-                    theme_color: this.state.theme === 'cute' ? "#ec4899" : "#ffffff",
-                    icons: [
-                        { src: iconUrl, sizes: "192x192", type: "image/svg+xml" },
-                        { src: iconUrl, sizes: "512x512", type: "image/svg+xml" }
-                    ]
-                };
-
-                document.getElementById('pwa-manifest').setAttribute('href', 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest)));
-
-                // Registrar un Service Worker mínimo a través de Blob para permitir instalación PWA
                 if ('serviceWorker' in navigator) {
-                    try {
-                        const swCode = "self.addEventListener('install', (e) => self.skipWaiting()); self.addEventListener('activate', (e) => self.clients.claim()); self.addEventListener('fetch', (e) => {});";
-                        const swBlob = new Blob([swCode], { type: 'application/javascript' });
-                        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Info:', err));
-                    } catch (e) { console.log('SW no soportado en este entorno', e); }
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('./sw.js')
+                            .then(reg => console.log('Service Worker registrado', reg))
+                            .catch(err => console.warn('Error al registrar Service Worker', err));
+                    });
                 }
             },
 
@@ -1192,11 +1185,6 @@
                     document.getElementById('meta-theme-color').setAttribute('content', '#000000');
                 }
                 lucide.createIcons();
-
-                // Actualizar colores del Manifest PWA si ya está inyectado
-                if (document.getElementById('pwa-manifest').getAttribute('href')) {
-                    this.setupPWA();
-                }
 
                 // Redibujar gráfico para aplicar colores del tema
                 if (this.state.activeTab === 'dashboard') {
