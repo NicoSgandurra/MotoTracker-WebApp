@@ -576,6 +576,26 @@
                             class="w-full bg-transparent border border-borderline text-primary py-2 rounded-md font-bold hover:bg-surface transition-colors">Importar
                             Datos</button>
                     </div>
+
+                    <div class="p-4 rounded-ui border border-borderline bg-base text-center mt-4">
+                        <i data-lucide="refresh-cw" class="w-8 h-8 mx-auto mb-2 text-primary"></i>
+                        <h4 class="font-bold mb-1">Cargar Datos del Código</h4>
+                        <p class="text-xs text-muted mb-4">Reemplaza tus datos actuales usando la información "quemada"
+                            (hardcodeada) en el archivo de código fuente.</p>
+                        <button onclick="app.syncFromHTML()"
+                            class="w-full bg-red-500/10 border border-red-500 text-red-500 py-2 rounded-md font-bold hover:bg-red-500 hover:text-white transition-colors">Sobreescribir
+                            Datos Locales</button>
+                    </div>
+
+                    <div class="p-4 rounded-ui border border-borderline bg-base text-center mt-4">
+                        <i data-lucide="code" class="w-8 h-8 mx-auto mb-2 text-primary"></i>
+                        <h4 class="font-bold mb-1">Exportar para Código</h4>
+                        <p class="text-xs text-muted mb-4">Copia tus datos actuales en formato JavaScript listo para
+                            pegar en el archivo index.html.</p>
+                        <button onclick="app.exportCodeForHTML()"
+                            class="w-full bg-transparent border border-borderline text-primary py-2 rounded-md font-bold hover:bg-surface transition-colors">Copiar
+                            al Portapapeles</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -637,7 +657,7 @@
                     { id: 8, date: "12/01/2026", km: 2160, liters: 5, cost: 8273, type: "full" },
                     { id: 9, date: "02/02/2026", km: 2446, liters: 5.44, cost: 9000, type: "full" },
                     { id: 10, date: "13/02/2026", km: 2700, liters: 6.05, cost: 10000, type: "full" },
-                    { id: 11, date: "13/03/2026", km: 3053, liters: 8.251, cost: 15000, type: "full" },
+                    { id: 11, date: "13/03/2026", km: 3053, liters: 8.251, cost: 15000, type: "full" }
                 ];
                 this.state.maintData = [
                     { id: 1, date: "01/04/2025", km: 0, type: "compra", details: "Moto Nueva", cost: 3600000 },
@@ -645,7 +665,7 @@
                     { id: 3, date: "09/09/2025", km: 777, type: "service", details: "Revisión filtro, aceite, lubricación cadena", cost: 25000 },
                     { id: 4, date: "26/12/2025", km: 1858, type: "service", details: "Cambio Aceite y filtro de aire (Motul 5100 15W-50 API SP - Jaso T 903)", cost: 18000 },
                     { id: 5, date: "06/02/2026", km: 2550, type: "cadena", details: "Lubricación de cadena", cost: 20300 },
-                    { id: 6, date: "09/02/2026", km: 2642, type: "service", details: "TanoMotos - Cambio de aceite, tensado cadena, etc.", cost: 91900 },
+                    { id: 6, date: "09/02/2026", km: 2642, type: "service", details: "TanoMotos - Cambio de aceite, tensado cadena, etc.", cost: 91900 }
                 ];
                 this.saveData();
             },
@@ -1124,6 +1144,38 @@
             },
 
             // --- BACKUP Y RESTAURACIÓN ---
+            exportCodeForHTML() {
+                const formatArr = (arr) => arr.map(item => {
+                    // Eliminamos campos internos generados al vuelo si los hay, aunque map no debería tenerlos si es copia dura
+                    const cleanItem = { ...item };
+                    delete cleanItem.kmPerDay;
+                    delete cleanItem.costPerL;
+                    return `                    ${JSON.stringify(cleanItem).replace(/"([a-zA-Z0-9_]+)":/g, "$1: ")}`;
+                }).join(',\n');
+                const code = `                this.state.fuelData = [\n${formatArr(this.state.fuelData)}\n                ];\n                this.state.maintData = [\n${formatArr(this.state.maintData)}\n                ];`;
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(code).then(() => {
+                        alert('✅ ¡Código JS copiado al portapapeles!\nAbre index.html, busca la función injectMockData() y pega allí el contenido para reemplazar las listas automáticamente.');
+                    }).catch(() => {
+                        prompt('Modo seguro activo (Sin permisos). Copia el siguiente texto y pégalo en injectMockData():', code);
+                    });
+                } else {
+                    prompt('Modo manual / Local: Copia el siguiente código y pégalo en injectMockData():', code);
+                }
+            },
+
+            syncFromHTML() {
+                if (confirm('⚠️ ¿Estás seguro? Esto reemplazará TODOS tus datos actuales en este dispositivo con los que están escritos en el código fuente (HTML).')) {
+                    this.injectMockData();
+                    this.updateYearOptions();
+                    this.calculateKPIs();
+                    this.switchTab('dashboard');
+                    this.closeModal('modal-settings');
+                    alert('Sincronización completada con éxito.');
+                }
+            },
+
             exportBackup() {
                 const data = {
                     maint: this.state.maintData,
