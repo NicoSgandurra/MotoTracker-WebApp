@@ -388,7 +388,9 @@
                                 <th class="px-6 py-3">Kilómetros</th>
                                 <th class="px-6 py-3">Litros</th>
                                 <th class="px-6 py-3">Costo</th>
-                                <th class="px-6 py-3">Tipo</th>
+                                <th class="px-6 py-3">$/L</th>
+                                <th class="px-6 py-3">Km/Día</th>
+
                                 <th class="px-6 py-3 text-right">Acción</th>
                             </tr>
                         </thead>
@@ -894,8 +896,21 @@
 
                 const tbody = document.getElementById('table-fuel-body');
 
+                // Pre-calcular kmPerDay y costPerL cronológicamente
+                const allFuelAsc = [...this.state.fuelData].sort((a, b) => this.parseDate(a.date) - this.parseDate(b.date));
+                const fuelDataWithExtras = allFuelAsc.map((f, i) => {
+                    let kmPerDay = 0;
+                    if (i > 0) {
+                        const prev = allFuelAsc[i - 1];
+                        const days = (this.parseDate(f.date) - this.parseDate(prev.date)) / (1000 * 60 * 60 * 24);
+                        kmPerDay = days > 0 ? ((f.km - prev.km) / days).toFixed(1) : 0;
+                    }
+                    const costPerL = f.liters > 0 ? (f.cost / f.liters).toFixed(2) : 0;
+                    return { ...f, kmPerDay, costPerL };
+                });
+
                 // Aplicar Filtros
-                let filtered = this.state.fuelData;
+                let filtered = fuelDataWithExtras;
                 if (this.state.filters.month !== 'all') {
                     filtered = filtered.filter(d => d.date.split('/')[1] === this.state.filters.month);
                 }
@@ -903,7 +918,7 @@
                     filtered = filtered.filter(d => d.date.split('/')[2] === this.state.filters.year);
                 }
 
-                const sorted = [...filtered].sort((a, b) => this.parseDate(b.date) - this.parseDate(a.date));
+                const sorted = filtered.sort((a, b) => this.parseDate(b.date) - this.parseDate(a.date));
 
                 tbody.innerHTML = sorted.map(f => `
                     <tr class="hover:bg-base/50 transition-colors">
@@ -911,7 +926,9 @@
                         <td class="px-6 py-4">${f.km} km</td>
                         <td class="px-6 py-4">${f.liters} L</td>
                         <td class="px-6 py-4">${this.formatMoney(f.cost)}</td>
-                        <td class="px-6 py-4 capitalize">${f.type}</td>
+                        <td class="px-6 py-4 text-accent font-medium">$${f.costPerL}</td>
+                        <td class="px-6 py-4 text-muted">${f.kmPerDay > 0 ? f.kmPerDay + ' km' : '-'}</td>
+
                         <td class="px-6 py-4 text-right">
                             <button onclick="app.deleteRecord('fuel', ${f.id})" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
